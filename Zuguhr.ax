@@ -1,0 +1,219 @@
+# @name     Zuguhr
+# @desc     Timer für Spielzüge: n Spieler, max. x Minuten je Zug
+# @version  1.0
+# @ondemand
+# @display  52x16
+# @config   players number "Spieler"                        default=4 min=2 max=12
+# @config   minutes number "Minuten je Zug"                 default=2 min=1 max=60 unit=min
+# @config   beep    bool   "Töne"                           default=true
+# @config   auto    bool   "Nach Ablauf automatisch weiter" default=false
+
+# Bedienung
+#   Einstellen: Knopf drehen oder links/rechts = Wert ändern, Knopf drücken = Zeile wechseln,
+#               mittlere Taste = Start
+#   Im Spiel:   mittlere Taste = Zug beenden, nächster Spieler startet
+#               links = einen Spieler zurück, rechts oder Knopf drücken = Pause/Weiter,
+#               Knopf halten = zurück zum Einstellen, mittlere Taste halten = beenden
+
+class Zuguhr
+  var st                  # 0 einstellen, 1 läuft, 2 Pause, 3 Zeit abgelaufen
+  var n, mins, beep, auto
+  var sel                 # gewählte Zeile beim Einstellen: 0 Spieler, 1 Minuten
+  var ln, lm              # Texte der Werte beim Einstellen
+  var cur, pcol           # aktueller Spieler (ab 0) und die Farbe seines Feldes
+  var left, t0            # Restzeit in ms zum Zeitpunkt t0
+  var lastsec, seg
+
+  def init()
+    self.n = int(clamp(num(store.get("players"), 4), 2, 12))
+    self.mins = int(clamp(num(store.get("minutes"), 2), 1, 60))
+    self.beep = store.get("beep") != false
+    self.auto = store.get("auto") == true
+    self.st = 0
+    self.sel = 0
+    self.cur = 0
+    self.pcol = 0x002040
+    self.left = 0
+    self.t0 = 0
+    self.lastsec = -1
+    self.ln = str(self.n)
+    self.lm = str(self.mins)
+    # Sieben-Segment-Muster der Ziffern 0-9
+    self.seg = [63, 6, 91, 79, 102, 109, 125, 7, 127, 111]
+  end
+
+  def setup()
+    timer.every(100, / -> self.tick())
+  end
+
+  def snd(melody)
+    if self.beep sound.play({'rtttl': melody}) end
+  end
+
+  # Zug für den aktuellen Spieler starten
+  def begin()
+    self.left = self.mins * 60000
+    self.t0 = now_ms()
+    self.lastsec = -1
+    self.pcol = hsv((200 + self.cur * 360 / self.n) % 360, 100, 35)
+    self.st = 1
+  end
+
+  # d Spieler weiter (oder zurück) und dessen Zug starten
+  def turn(d)
+    self.cur = (self.cur + d + self.n) % self.n
+    self.begin()
+    self.snd('next:d=16,o=6,b=220:c,g')
+  end
+
+  def pause()
+    if self.st == 1
+      self.left -= now_ms() - self.t0
+      self.st = 2
+    elif self.st == 2
+      self.t0 = now_ms()
+      self.st = 1
+    end
+  end
+
+  def adj(d)
+    if self.sel == 0
+      self.n = clamp(self.n + d, 2, 12)
+      self.ln = str(self.n)
+    else
+      self.mins = clamp(self.mins + d, 1, 60)
+      self.lm = str(self.mins)
+    end
+  end
+
+  # alle 100 ms: Ablauf der Zeit und Töne der letzten Sekunden
+  def tick()
+    if self.st != 1 return end
+    var rem = self.left - (now_ms() - self.t0)
+    if rem <= 0
+      self.left = 0
+      self.t0 = now_ms()
+      self.st = 3
+      if self.auto
+        self.turn(1)
+      else
+        self.snd('end:d=8,o=6,b=180:c,p,c,p,c,p,2c')
+      end
+      return
+    end
+    var s = (rem + 999) / 1000
+    if s != self.lastsec
+      if s <= 5 && self.lastsec >= 0 self.snd('tick:d=32,o=5,b=200:a') end
+      self.lastsec = s
+    end
+  end
+
+  def on_button_event(btn, event)
+    if event == "press" || event == "repeat"
+      if self.st == 0
+        if btn == "left" self.adj(-1) elif btn == "right" self.adj(1) end
+      elif event == "press"
+        if btn == "left" self.turn(-1) elif btn == "right" self.pause() end
+      end
+    elif event == "release" && btn == "select"
+      if self.st == 0
+        store.set("players", self.n)
+        store.set("minutes", self.mins)
+        self.cur = 0
+        self.begin()
+        self.snd('go:d=16,o=5,b=220:c,e,g')
+      else
+        self.turn(1)
+      end
+    end
+    return true
+  end
+
+  def on_knob(event)
+    if event == "press"
+      if self.st == 0 self.sel = 1 - self.sel else self.pause() end
+    elif event == "long"
+      self.st = 0
+    elif event == "left" || event == "right"
+      if self.st != 0 return false end       # im Spiel: Helligkeit wie gewohnt
+      self.adj(event == "left" ? -1 : 1)
+    end
+    return true
+  end
+
+  # eine große Ziffer, 6 breit und 14 hoch, linke obere Ecke bei (x, 0)
+  def digit(x, d, c)
+    var m = self.seg[d]
+    if (m & 1) != 0  rect_fill(x, 0, 6, 2, c) end
+    if (m & 64) != 0 rect_fill(x, 6, 6, 2, c) end
+    if (m & 8) != 0  rect_fill(x, 12, 6, 2, c) end
+    if (m & 32) != 0 rect_fill(x, 0, 2, 8, c) end
+    if (m & 2) != 0  rect_fill(x + 4, 0, 2, 8, c) end
+    if (m & 16) != 0 rect_fill(x, 6, 2, 8, c) end
+    if (m & 4) != 0  rect_fill(x + 4, 6, 2, 8, c) end
+  end
+
+  def draw()
+    var w = width()
+    if self.st == 0
+      # Einstellen: zwei Zeilen, die gewählte ist hell
+      clear()
+      var a = self.sel == 0 ? 0xFFFFFF : 0x505050
+      var b = self.sel == 1 ? 0xFFFFFF : 0x505050
+      rect_fill(0, self.sel * 8 + 1, 1, 5, 0x00C0FF)
+      text(3, 6, "SPIELER", a)
+      text(w - 1 - text_ink_width(self.ln), 6, self.ln, self.sel == 0 ? 0x00C0FF : 0x505050)
+      text(3, 14, "MIN/ZUG", b)
+      text(w - 1 - text_ink_width(self.lm), 14, self.lm, self.sel == 1 ? 0x00C0FF : 0x505050)
+      return
+    end
+
+    var now = now_ms()
+    var total = self.mins * 60000
+    var rem = self.st == 1 ? self.left - (now - self.t0) : self.left
+    if rem < 0 rem = 0 end
+    var s = (rem + 999) / 1000
+    var c = 0x00E040                              # grün: genug Zeit
+    if s <= 10 c = 0xFF2000                       # rot: letzte 10 Sekunden
+    elif rem * 4 <= total c = 0xFFB000 end        # gelb: letztes Viertel
+    if self.st == 2                               # Pause: blinkt gedimmt
+      c = (now / 500) % 2 == 0 ? 0x806000 : 0x302400
+    end
+    if self.st == 3 && ((now - self.t0) / 300) % 2 == 0
+      clear(0xFF0000)                             # abgelaufen: Anzeige blinkt rot
+      c = 0x000000
+    else
+      clear()
+    end
+
+    # Spielernummer links: weiße Ziffer auf einem Feld in der Farbe des Spielers
+    var p = self.cur + 1
+    var fg = c == 0x000000 ? 0xFF0000 : 0xFFFFFF
+    rect_fill(0, 0, p >= 10 ? 17 : 10, 14, c == 0x000000 ? 0x000000 : self.pcol)
+    if p >= 10
+      self.digit(2, 1, fg)
+      self.digit(9, p % 10, fg)
+    else
+      self.digit(2, p, fg)
+    end
+
+    # Restzeit rechts als M:SS oder MM:SS
+    var x = w - (self.mins >= 10 ? 30 : 23)
+    var mm = s / 60
+    var ss = s % 60
+    if self.mins >= 10
+      self.digit(x, mm / 10, c)
+      x += 7
+    end
+    self.digit(x, mm % 10, c)
+    rect_fill(x + 7, 3, 2, 2, c)
+    rect_fill(x + 7, 9, 2, 2, c)
+    self.digit(x + 10, ss / 10, c)
+    self.digit(x + 17, ss % 10, c)
+
+    # Restzeit als Balken in der untersten Zeile
+    if self.st != 3 rect_fill(0, height() - 1, rem * w / total, 1, c) end
+  end
+end
+
+return Zuguhr()
