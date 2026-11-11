@@ -1,6 +1,6 @@
 # @name     Zuguhr
 # @desc     Timer für Spielzüge: n Spieler, max. x Minuten je Zug
-# @version  1.0
+# @version  1.1
 # @ondemand
 # @display  52x16
 # @config   players number "Spieler"                        default=4 min=2 max=12
@@ -16,12 +16,12 @@
 #               Knopf halten = zurück zum Einstellen, mittlere Taste halten = beenden
 
 class Zuguhr
-  var st                  # 0 einstellen, 1 läuft, 2 Pause, 3 Zeit abgelaufen
+  var st                  # 0 einstellen, 1 läuft, 2 Pause, 3 Zeit überzogen
   var n, mins, beep, auto
   var sel                 # gewählte Zeile beim Einstellen: 0 Spieler, 1 Minuten
   var ln, lm              # Texte der Werte beim Einstellen
   var cur, pcol           # aktueller Spieler (ab 0) und die Farbe seines Feldes
-  var left, t0            # Restzeit in ms zum Zeitpunkt t0
+  var left, t0            # Restzeit in ms zum Zeitpunkt t0; überzogen: t0 = Ablauf
   var lastsec, seg
 
   def init()
@@ -91,8 +91,8 @@ class Zuguhr
     if self.st != 1 return end
     var rem = self.left - (now_ms() - self.t0)
     if rem <= 0
+      self.t0 += self.left                        # Zeitpunkt des Ablaufs
       self.left = 0
-      self.t0 = now_ms()
       self.st = 3
       if self.auto
         self.turn(1)
@@ -179,17 +179,16 @@ class Zuguhr
     if self.st == 2                               # Pause: blinkt gedimmt
       c = (now / 500) % 2 == 0 ? 0x806000 : 0x302400
     end
-    if self.st == 3 && ((now - self.t0) / 300) % 2 == 0
-      clear(0xFF0000)                             # abgelaufen: Anzeige blinkt rot
-      c = 0x000000
-    else
-      clear()
+    if self.st == 3                               # überzogen: Zeit läuft mit Minus weiter, blinkt rot
+      s = min((now - self.t0) / 1000, self.mins >= 10 ? 5999 : 599)
+      c = ((now - self.t0) / 300) % 2 == 0 ? 0xFF2000 : 0x500800
     end
+    clear()
 
     # Spielernummer links: weiße Ziffer auf einem Feld in der Farbe des Spielers
     var p = self.cur + 1
-    var fg = c == 0x000000 ? 0xFF0000 : 0xFFFFFF
-    rect_fill(0, 0, p >= 10 ? 17 : 10, 14, c == 0x000000 ? 0x000000 : self.pcol)
+    var fg = 0xFFFFFF
+    rect_fill(0, 0, p >= 10 ? 17 : 10, 14, self.pcol)
     if p >= 10
       self.digit(2, 1, fg)
       self.digit(9, p % 10, fg)
@@ -201,6 +200,7 @@ class Zuguhr
     var x = w - (self.mins >= 10 ? 30 : 23)
     var mm = s / 60
     var ss = s % 60
+    if self.st == 3 rect_fill(x - 4, 6, 3, 2, c) end   # Minuszeichen
     if self.mins >= 10
       self.digit(x, mm / 10, c)
       x += 7

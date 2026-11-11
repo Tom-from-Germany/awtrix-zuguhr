@@ -6,7 +6,7 @@ Alles wird an der Uhr eingestellt und mit ihren Tasten bedient.
 
 ![Vorschau](Zuguhr-Vorschau.png)
 
-Von oben nach unten: Einstellen, laufender Zug, letztes Viertel der Zeit, Spieler 12, Zeit abgelaufen.
+Von oben nach unten: Einstellen, laufender Zug, letztes Viertel der Zeit, Spieler 12, Zeit überzogen.
 
 ## Installieren
 
@@ -42,8 +42,8 @@ Die Werte bleiben gespeichert.
 
 - Links die Spielernummer auf einem Feld in der Farbe des Spielers, rechts die Restzeit, unten ein Balken.
 - Die Zeit ist grün, im letzten Viertel gelb und in den letzten 10 Sekunden rot.
-- In den letzten 5 Sekunden tickt es. Bei Ablauf ertönt ein Signal und die Anzeige blinkt rot, bis die
-  mittlere Taste gedrückt wird.
+- In den letzten 5 Sekunden tickt es. Bei Ablauf ertönt ein Signal. Danach läuft die Zeit mit einem
+  Minuszeichen weiter und blinkt rot, bis die mittlere Taste gedrückt wird.
 
 ## Einstellungen im Web-UI
 
