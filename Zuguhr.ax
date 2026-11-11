@@ -1,6 +1,6 @@
 # @name     Zuguhr
 # @desc     Timer für Spielzüge: n Spieler, max. x Minuten je Zug
-# @version  1.1
+# @version  1.2
 # @ondemand
 # @display  52x16
 # @config   players number "Spieler"                        default=4 min=2 max=12
@@ -8,11 +8,11 @@
 # @config   beep    bool   "Töne"                           default=true
 # @config   auto    bool   "Nach Ablauf automatisch weiter" default=false
 
-# Bedienung
-#   Einstellen: Knopf drehen oder links/rechts = Wert ändern, Knopf drücken = Zeile wechseln,
+# Bedienung (Minus = linke Taste, Plus = rechte Taste)
+#   Einstellen: Knopf drehen oder Minus/Plus = Wert ändern, Knopf drücken = Zeile wechseln,
 #               mittlere Taste = Start
-#   Im Spiel:   mittlere Taste = Zug beenden, nächster Spieler startet
-#               links = einen Spieler zurück, rechts oder Knopf drücken = Pause/Weiter,
+#   Im Spiel:   Plus = Zug beenden, nächster Spieler startet
+#               Minus = einen Spieler zurück, mittlere Taste oder Knopf drücken = Pause/Weiter,
 #               Knopf halten = zurück zum Einstellen, mittlere Taste halten = beenden
 
 class Zuguhr
@@ -113,7 +113,7 @@ class Zuguhr
       if self.st == 0
         if btn == "left" self.adj(-1) elif btn == "right" self.adj(1) end
       elif event == "press"
-        if btn == "left" self.turn(-1) elif btn == "right" self.pause() end
+        if btn == "left" self.turn(-1) elif btn == "right" self.turn(1) end
       end
     elif event == "release" && btn == "select"
       if self.st == 0
@@ -123,7 +123,7 @@ class Zuguhr
         self.begin()
         self.snd('go:d=16,o=5,b=220:c,e,g')
       else
-        self.turn(1)
+        self.pause()
       end
     end
     return true

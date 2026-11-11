@@ -18,11 +18,13 @@ Die Zuguhr läuft nicht in der App-Rotation, sondern nur, wenn sie so gestartet 
 
 ## Bedienung
 
+Minus ist die linke, Plus die rechte Taste.
+
 ### Einstellen
 
 | Eingabe | Wirkung |
 |---|---|
-| Knopf drehen, linke oder rechte Taste | Wert ändern (2-12 Spieler, 1-60 Minuten je Zug) |
+| Knopf drehen, Minus oder Plus | Wert ändern (2-12 Spieler, 1-60 Minuten je Zug) |
 | Knopf drücken | zwischen „Spieler" und „Min/Zug" wechseln |
 | Mittlere Taste | Spiel starten, Spieler 1 beginnt |
 
@@ -32,9 +34,9 @@ Die Werte bleiben gespeichert.
 
 | Eingabe | Wirkung |
 |---|---|
-| Mittlere Taste | Zug beenden, der Timer des nächsten Spielers startet |
-| Linke Taste | einen Spieler zurück |
-| Rechte Taste oder Knopf drücken | Pause und Weiter |
+| Plus | Zug beenden, der Timer des nächsten Spielers startet |
+| Minus | einen Spieler zurück |
+| Mittlere Taste oder Knopf drücken | Pause und Weiter |
 | Knopf halten | zurück zum Einstellen |
 | Mittlere Taste halten | Zuguhr beenden |
 
@@ -43,7 +45,7 @@ Die Werte bleiben gespeichert.
 - Links die Spielernummer auf einem Feld in der Farbe des Spielers, rechts die Restzeit, unten ein Balken.
 - Die Zeit ist grün, im letzten Viertel gelb und in den letzten 10 Sekunden rot.
 - In den letzten 5 Sekunden tickt es. Bei Ablauf ertönt ein Signal. Danach läuft die Zeit mit einem
-  Minuszeichen weiter und blinkt rot, bis die mittlere Taste gedrückt wird.
+  Minuszeichen weiter und blinkt rot, bis Plus gedrückt wird.
 
 ## Einstellungen im Web-UI
 
